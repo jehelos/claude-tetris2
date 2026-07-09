@@ -48,7 +48,7 @@ jobs:
             4. Publica un comentario en el issue (en español) con el diagnóstico general, usando:
                gh issue comment ${{ github.event.issue.number }} --repo ${{ github.repository }} --body "<contenido>"
 
-               El comentario debe tener este formato Markdown:
+               El comentario debe estar escrito en formato Markdown válido y bien interpretado por GitHub (encabezados con `#`, negritas con `**`, listas con `-`, etc.), con este formato:
 
                ## 🔍 Diagnóstico automático
 
