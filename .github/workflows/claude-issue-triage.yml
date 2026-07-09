@@ -1,0 +1,66 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Issue Triage
+        id: claude-triage
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--allowed-tools "Bash(gh label:*),Bash(gh issue edit:*),Bash(gh issue comment:*),Bash(gh issue view:*)"'
+          prompt: |
+            Analiza el issue #${{ github.event.issue.number }} del repositorio ${{ github.repository }}.
+
+            Pasos:
+
+            1. Lee el título y cuerpo del issue con:
+               gh issue view ${{ github.event.issue.number }} --repo ${{ github.repository }} --json title,body,labels
+
+            2. Asegúrate de que existan estos labels estándar en el repositorio (créalos si faltan, con `gh label create <nombre> --repo ${{ github.repository }} --color <hex> --description <desc>` usando `|| true` para no fallar si ya existen):
+               - bug (rojo, "Algo no funciona como se espera")
+               - enhancement (azul, "Nueva funcionalidad o mejora")
+               - question (morado, "Duda o consulta")
+               - documentation (gris, "Relacionado a documentación")
+               - ui (amarillo, "Interfaz, estilos o presentación visual")
+               - gameplay (verde, "Lógica o mecánica del juego (game.js)")
+               - performance (naranja, "Rendimiento o fluidez")
+
+            3. Clasifica el issue y aplica los labels que apliquen (puede ser más de uno) con:
+               gh issue edit ${{ github.event.issue.number }} --repo ${{ github.repository }} --add-label "<label1>,<label2>"
+
+               No agregues labels que ya estén aplicados. No elimines labels existentes que sigan siendo válidos.
+
+            4. Publica un comentario en el issue (en español) con el diagnóstico general, usando:
+               gh issue comment ${{ github.event.issue.number }} --repo ${{ github.repository }} --body "<contenido>"
+
+               El comentario debe tener este formato Markdown:
+
+               ## 🔍 Diagnóstico automático
+
+               **Resumen**: (1-2 frases de qué reporta o pide el issue)
+
+               **Causa probable / área afectada**: (qué parte del juego está involucrada: renderizado, colisiones, rotación, puntuación, controles, estado, etc.)
+
+               **Archivos probables**: (cuáles de `game.js`, `index.html`, `style.css` habría que tocar, y por qué)
+
+               **Enfoque de solución sugerido**: (pasos generales a alto nivel para abordarlo, sin escribir código todavía)
+
+               ---
+               *Este es un análisis preliminar generado automáticamente. Sirve como punto de partida para implementar la solución.*
+
+            Si el issue es una edición y ya existe un comentario previo de diagnóstico automático (identificable por el encabezado "## 🔍 Diagnóstico automático"), publica un nuevo comentario actualizado en vez de omitirlo, indicando al inicio que es una actualización tras la edición del issue.
